@@ -13,7 +13,7 @@ This application is optimized for easy deployment to Vercel with Neon PostgreSQL
    - Copy your database connection string
 
 > [!NOTE]  
-> You can also skip this step by setting up a
+> Ensure your database is set to accept connections and note the connection string format
 
 3. **Deploy to Vercel**:
    - Connect your GitHub repository to Vercel
@@ -24,8 +24,14 @@ This application is optimized for easy deployment to Vercel with Neon PostgreSQL
    - Deploy! Vercel will automatically handle the build and deployment
 
 4. **Run database migrations**:
-   - After deployment, run migrations via Vercel CLI or dashboard
-   - Alternatively, set up GitHub Actions for automatic migrations
+   ```bash
+   # Pull environment variables from Vercel
+   VERCEL_TOKEN=your_vercel_token vercel env pull .env.local
+   
+   # Generate and run migrations
+   bunx drizzle-kit generate
+   bunx drizzle-kit migrate
+   ```
 
 ## 🛠 Tech Stack
 
@@ -69,7 +75,7 @@ Simply use [Claude Code](https://claude.ai/code) with this repository for intell
 
    ```bash
    git clone <your-repo-url>
-   cd sveltekit-betterauth
+   cd taskmaster
    bun install  # or npm install
    ```
 

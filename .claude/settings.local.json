@@ -1,3 +1,17 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(VERCEL_TOKEN=7zM3PgWeAXW7QMi8U575AUYT vercel --prod)",
+      "Bash(VERCEL_TOKEN=7zM3PgWeAXW7QMi8U575AUYT vercel env pull .env.local)",
+      "Bash(bunx drizzle-kit migrate:*)",
+      "Bash(bunx:*)",
+      "Bash(VERCEL_TOKEN=7zM3PgWeAXW7QMi8U575AUYT vercel env ls)",
+      "Bash(VERCEL_TOKEN=7zM3PgWeAXW7QMi8U575AUYT vercel env pull .env.production --environment=production)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_UuiK9JeWpkz1@ep-summer-bread-adgh7lo8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" bunx drizzle-kit migrate)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_UuiK9JeWpkz1@ep-summer-bread-adgh7lo8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" bunx drizzle-kit studio)",
+      "Bash(rm:*)",
+      "Bash(git add:*)"
+    ]
+  },
   "outputStyle": "default"
 }

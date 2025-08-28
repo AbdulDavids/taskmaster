@@ -1,4 +1,5 @@
 import { form, getRequestEvent } from '$app/server';
+import { db } from '$lib/db';
 import { taskDependencyTypeEnum, taskDependencies } from '$lib/db/schemas/schema';
 import { validateForm } from '$lib/util.server';
 import { and, eq, type InferEnum } from 'drizzle-orm';
@@ -38,8 +39,11 @@ export const updateDependencyTypeForm = form(async (formData) => {
   const { id, original_task_id, dependency_type } = validatedReq.data;
 
   // Fetch existing dependency
-  const existingDependency = await locals.db.query.taskDependencies.findFirst({
-    where: eq(taskDependencies.id, id)
+  const existingDependency = await db.query.taskDependencies.findFirst({
+    where: and(
+      eq(taskDependencies.id, id),
+      eq(taskDependencies.created_by, user.id)
+    )
   });
 
   if (!existingDependency) {
@@ -64,7 +68,7 @@ export const updateDependencyTypeForm = form(async (formData) => {
   };
 
   // Update the dependency
-  const result = await locals.db
+  const result = await db
     .update(taskDependencies)
     .set(updates)
     .where(and(eq(taskDependencies.created_by, user.id), eq(taskDependencies.id, id)));
@@ -104,7 +108,7 @@ export const deleteTaskDependencyForm = form(async (formData) => {
 
   const { id } = validatedReq.data;
 
-  const result = await locals.db
+  const result = await db
     .delete(taskDependencies)
     .where(and(eq(taskDependencies.created_by, user.id), eq(taskDependencies.id, id)));
 

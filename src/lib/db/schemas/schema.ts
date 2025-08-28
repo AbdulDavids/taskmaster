@@ -1,5 +1,4 @@
 import { relations, sql } from 'drizzle-orm';
-import { authenticatedRole, authUid, crudPolicy } from 'drizzle-orm/neon';
 import {
   check,
   customType,
@@ -64,12 +63,7 @@ export const tasks = pgTable(
     ...timestamps
   },
   (t) => [
-    index('title_search_index').using('gin', t.search_vector),
-    crudPolicy({
-      role: authenticatedRole,
-      read: authUid(t.created_by),
-      modify: authUid(t.created_by)
-    })
+    index('title_search_index').using('gin', t.search_vector)
   ]
 );
 
@@ -108,12 +102,7 @@ export const taskDependencies = pgTable(
   },
   (t) => [
     unique().on(t.task_id, t.depends_on_task_id),
-    check('no_self_ref', sql`${t.task_id} <> ${t.depends_on_task_id}`),
-    crudPolicy({
-      role: authenticatedRole,
-      read: authUid(t.created_by),
-      modify: authUid(t.created_by)
-    })
+    check('no_self_ref', sql`${t.task_id} <> ${t.depends_on_task_id}`)
   ]
 );
 
@@ -139,13 +128,7 @@ export const projects = pgTable(
     created_by: createdBy,
     ...timestamps
   },
-  (t) => [
-    crudPolicy({
-      role: authenticatedRole,
-      read: authUid(t.created_by),
-      modify: authUid(t.created_by)
-    })
-  ]
+  (t) => []
 );
 
 export const projectsRelations = relations(projects, ({ many }) => ({

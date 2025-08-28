@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1756332993239,
-      "tag": "0000_icy_vengeance",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1756333441136,
-      "tag": "0001_uneven_valeria_richards",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1756335080201,
-      "tag": "0002_amusing_eddie_brock",
+      "when": 1756377630540,
+      "tag": "0000_rare_scarlet_spider",
       "breakpoints": true
     }
   ]

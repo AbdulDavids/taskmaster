@@ -1,6 +1,8 @@
 import { form, getRequestEvent, query } from '$app/server';
-import { taskDependencyTypeEnum, taskDependencies } from '$lib/db/schemas/schema';
+import { db } from '$lib/db';
+import { taskDependencyTypeEnum, taskDependencies, tasks } from '$lib/db/schemas/schema';
 import { validateForm } from '$lib/util.server';
+import { and, eq, not } from 'drizzle-orm';
 import z from 'zod';
 
 const GetTasksRequest = z.object({
@@ -10,11 +12,15 @@ const GetTasksRequest = z.object({
 
 export const getTasks = query(GetTasksRequest, async (params) => {
   const { locals } = getRequestEvent();
+  const { user } = await locals.validateSession();
   const { projectId, excludeTaskIds = [] } = params;
 
-  const result = await locals.db.query.tasks.findMany({
-    where: (table, { eq, and, not }) =>
-      and(eq(table.project_id, projectId), ...excludeTaskIds.map((id) => not(eq(table.id, id))))
+  const result = await db.query.tasks.findMany({
+    where: and(
+      eq(tasks.project_id, projectId),
+      eq(tasks.created_by, user.id),
+      ...excludeTaskIds.map((id) => not(eq(tasks.id, id)))
+    )
   });
 
   return result;
@@ -28,6 +34,7 @@ const AddRelationForm = z.object({
 
 export const addRelationForm = form(async (formData) => {
   const { locals } = getRequestEvent();
+  const { user } = await locals.validateSession();
 
   const validatedReq = validateForm(formData, AddRelationForm);
 
@@ -42,10 +49,11 @@ export const addRelationForm = form(async (formData) => {
   } = validatedReq.data;
 
   try {
-    await locals.db.insert(taskDependencies).values({
+    await db.insert(taskDependencies).values({
       task_id: taskId,
       depends_on_task_id: relatedTaskId,
-      dependency_type: dependencyType
+      dependency_type: dependencyType,
+      created_by: user.id
     });
   } catch (error) {
     console.error('Error adding relation:', error);
