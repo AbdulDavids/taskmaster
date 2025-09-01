@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "name": "taskmaster-speakeasyapi",
+  "framework": "sveltekit",
+  "buildCommand": "bun run build",
+  "installCommand": "bun install"
+}

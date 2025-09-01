@@ -1,5 +1,5 @@
 import { getRequestEvent } from '$app/server';
-import { DATABASE_AUTHENTICATED_URL, DATABASE_URL, USE_AUTH_DB } from '$env/static/private';
+import { DATABASE_AUTHENTICATED_URL, DATABASE_URL } from '$env/static/private';
 import { combinedSchemas } from '$lib/db';
 import { neon } from '@neondatabase/serverless';
 import { drizzle, NeonHttpDatabase } from 'drizzle-orm/neon-http';
@@ -27,7 +27,7 @@ export const createAuthenticatedDb = (strategy: 'session' | 'bearer'): Authentic
   }
 
   // Local-dev fallback: optionally bypass Neon JWT auth and use service connection
-  if (USE_AUTH_DB !== 'true') {
+  if (process.env.USE_AUTH_DB !== 'true') {
     return drizzle(neon(DATABASE_URL), {
       schema: combinedSchemas
     }) as unknown as AuthenticatedDbClient;
