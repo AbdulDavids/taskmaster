@@ -92,14 +92,10 @@ Simply use [Claude Code](https://claude.ai/code) with this repository for intell
 
    # Database (JWT-auth connection for RLS with Neon)
    DATABASE_AUTHENTICATED_URL=postgresql://authenticated@<host>/<db>?sslmode=require&channel_binding=require
-
-   # Local dev: use service DB by default (avoids JWT plumbing)
-   USE_AUTH_DB=false
    ```
 
    Notes:
-   - Set `USE_AUTH_DB=true` if you want to exercise Neon RLS locally. With RLS on, the app uses `DATABASE_AUTHENTICATED_URL` and forwards a per-request JWT to the DB.
-   - With `USE_AUTH_DB=false` (default for local dev), the app uses `DATABASE_URL` for simplicity.
+   - The app uses the Neon JWT-auth connection by default. Ensure `DATABASE_AUTHENTICATED_URL` works with your Neon project and roles.
 
 3. **Initialize and migrate the database**
 
@@ -178,6 +174,10 @@ Authorization: ApiKey tm_xxx_yyy
 - `bun run db:init` - Create `authenticated` role, `auth.user_id()` function, grants
 - `bun run migrate` - Run Drizzle migrations
 - `bunx drizzle-kit studio` - Open Drizzle Studio
+
+### Operations
+
+- `bun run db:reset-jwks` - Clear JWKS (use when rotating BETTER_AUTH_SECRET)
 
 ### Deployment
 
