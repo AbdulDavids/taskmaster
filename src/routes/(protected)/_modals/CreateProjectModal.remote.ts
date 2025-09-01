@@ -4,10 +4,11 @@ import { CreateProjectRequest } from './CreateProjectModal.schemas';
 
 export const createProject = command(CreateProjectRequest, async (request) => {
   const { locals } = getRequestEvent();
+  const { user } = await locals.validateSession();
 
   const [result] = await locals.db
     .insert(projects)
-    .values({ ...request })
+    .values({ ...request, created_by: user.id })
     .returning();
 
   return result;

@@ -61,47 +61,63 @@ Simply use [Claude Code](https://claude.ai/code) with this repository for intell
 ### Prerequisites
 
 - Bun 1.2+
-- PostgreSQL database (local or hosted)
+- Neon (or any PostgreSQL) connection string
 
 ### Setup
 
-1. **Clone and install dependencies**:
+1. **Clone and install dependencies**
 
    ```bash
    git clone <your-repo-url>
-   cd sveltekit-betterauth
-   bun install  # or npm install
+   cd taskmaster
+   bun install
    ```
 
-2. **Configure environment variables**:
+2. **Create local env file**
 
    ```bash
-   cp .env.example .env
+   cp .env.example .env.local
    ```
 
-   Add your database URL:
+   Then set the following (example values shown):
 
    ```env
-   DATABASE_URL=postgresql://username:password@localhost:5432/database_name
+   # Better Auth
+   BETTER_AUTH_SECRET=change_me_in_prod
+   BETTER_AUTH_URL=http://localhost:5173
+   PUBLIC_BETTER_AUTH_URL=http://localhost:5173
+
+   # Database (service connection)
+   DATABASE_URL=postgresql://<user>:<password>@<host>/<db>?sslmode=require&channel_binding=require
+
+   # Database (JWT-auth connection for RLS with Neon)
+   DATABASE_AUTHENTICATED_URL=postgresql://authenticated@<host>/<db>?sslmode=require&channel_binding=require
+
+   # Local dev: use service DB by default (avoids JWT plumbing)
+   USE_AUTH_DB=false
    ```
 
-3. **Set up the database**:
+   Notes:
+   - Set `USE_AUTH_DB=true` if you want to exercise Neon RLS locally. With RLS on, the app uses `DATABASE_AUTHENTICATED_URL` and forwards a per-request JWT to the DB.
+   - With `USE_AUTH_DB=false` (default for local dev), the app uses `DATABASE_URL` for simplicity.
+
+3. **Initialize and migrate the database**
 
    ```bash
-   # Generate and run migrations
-   bunx drizzle-kit generate
-   bunx drizzle-kit migrate
+   # Provision role/schema/function needed for RLS and JWT context (safe to re-run)
+   bun run db:init
 
-   # Optional: Open Drizzle Studio
-   bunx drizzle-kit studio
+   # Apply all migrations
+   bun run migrate
    ```
 
-4. **Start development server**:
+4. **Start the dev server**
+
    ```bash
-   bun dev  # or npm run dev
+   bun dev
    ```
 
-Visit `http://localhost:5173` to see your application running.
+   Visit `http://localhost:5173` and sign up. Create a project to get started.
 
 ## 🏛 Architecture Notes
 
@@ -119,6 +135,20 @@ This project uses SvelteKit's experimental remote functions feature for type-saf
 - **SvelteKit Integration**: Handled via `src/hooks.server.ts`
 - **Database Schemas**: Auth tables in `src/lib/db/schemas/auth.ts`
 - **OIDC Provider**: Custom implementation in `src/lib/oidc-provider/`
+
+### API Keys for MCP / Programmatic Access
+
+- Table: `api_keys` with owner-only RLS
+- Create via Developer Dashboard → “API Keys” → New Key
+- Keys are returned once and stored hashed (SHA-256) server-side
+- Prefix format: `tm_<prefix>_...` for easy identification
+- Revoke from the same page; revoked keys are rejected
+
+Client usage (example header):
+
+```http
+Authorization: ApiKey tm_xxx_yyy
+```
 
 ### Database Structure
 
@@ -145,9 +175,13 @@ This project uses SvelteKit's experimental remote functions feature for type-saf
 
 ### Database
 
-- `bunx drizzle-kit generate` - Generate migrations
-- `bunx drizzle-kit migrate` - Run migrations
+- `bun run db:init` - Create `authenticated` role, `auth.user_id()` function, grants
+- `bun run migrate` - Run Drizzle migrations
 - `bunx drizzle-kit studio` - Open Drizzle Studio
+
+### Deployment
+
+- `bun run build` - Build the app (Vite/SvelteKit)
 
 ## 📖 API Documentation
 

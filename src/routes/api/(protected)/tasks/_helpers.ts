@@ -8,21 +8,35 @@ import type { ZodError, ZodTypeAny } from 'zod';
 
 export async function validateAuthHeader(
   authHeader: string | null
-): Promise<InferSelectModel<typeof oauthAccessTokens> | false> {
+): Promise<InferSelectModel<typeof oauthAccessTokens> | { userId: string } | false> {
   if (!authHeader) return false;
-  if (!authHeader.startsWith('Bearer ')) return false;
 
-  const parts = authHeader.split(' ');
+  // OAuth Bearer token
+  if (authHeader.startsWith('Bearer ')) {
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2) return false;
+    const providedToken = parts[1];
 
-  if (parts.length !== 2) return false;
-  const providedToken = parts[1];
+    const storedToken = await db.query.oauthAccessTokens.findFirst({
+      where: (table, { eq }) => eq(table.accessToken, providedToken)
+    });
+    if (!storedToken) return false;
 
-  const storedToken = await db.query.oauthAccessTokens.findFirst({
-    where: (table, { eq }) => eq(table.accessToken, providedToken)
-  });
-  if (!storedToken) return false;
+    return storedToken;
+  }
 
-  return storedToken;
+  // API Key header
+  if (authHeader.startsWith('ApiKey ')) {
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2) return false;
+    const providedKey = parts[1];
+    const { validateApiKey } = await import('./apikey');
+    const result = await validateApiKey(providedKey);
+    if (!result.valid) return false;
+    return { userId: result.userId };
+  }
+
+  return false;
 }
 
 type FieldErrors = Record<string, string[]>;

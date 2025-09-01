@@ -28,6 +28,13 @@ export const handle: Handle = async ({ event, resolve }) => {
   } else if (event.route.id?.startsWith(BEARER_TOKEN_PROTECTED_ROUTE_ID_PREFIX)) {
     await event.locals.validateBearerToken();
     event.locals.db = createAuthenticatedDb('bearer');
+  } else {
+    // For non-protected routes, still attach a db for convenience (service connection)
+    try {
+      event.locals.db = createAuthenticatedDb('session');
+    } catch {
+      // ignore
+    }
   }
 
   return svelteKitHandler({ event, resolve, auth, building });

@@ -8,5 +8,6 @@ import * as schemas from './schemas/schema.js';
 export const combinedSchemas = { ...schemas, ...authSchemas, ...authExtensions };
 
 export const db = drizzle(neon(DATABASE_URL), {
-  schema: combinedSchemas
+  schema: combinedSchemas,
+  logger: true
 });

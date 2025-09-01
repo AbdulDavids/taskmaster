@@ -28,6 +28,7 @@ const AddRelationForm = z.object({
 
 export const addRelationForm = form(async (formData) => {
   const { locals } = getRequestEvent();
+  const { user } = await locals.validateSession();
 
   const validatedReq = validateForm(formData, AddRelationForm);
 
@@ -45,7 +46,8 @@ export const addRelationForm = form(async (formData) => {
     await locals.db.insert(taskDependencies).values({
       task_id: taskId,
       depends_on_task_id: relatedTaskId,
-      dependency_type: dependencyType
+      dependency_type: dependencyType,
+      created_by: user.id
     });
   } catch (error) {
     console.error('Error adding relation:', error);

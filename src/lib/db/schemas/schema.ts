@@ -6,6 +6,7 @@ import {
   index,
   pgEnum,
   pgTable,
+  boolean,
   text,
   timestamp,
   unique,
@@ -150,4 +151,35 @@ export const projects = pgTable(
 
 export const projectsRelations = relations(projects, ({ many }) => ({
   task: many(tasks)
+}));
+
+// API Keys for programmatic access (e.g., MCP server)
+export const apiKeys = pgTable(
+  'api_keys',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    label: varchar({ length: 255 }).notNull(),
+    key_prefix: varchar({ length: 12 }).notNull(),
+    key_hash: text().notNull(),
+    revoked: boolean().default(false).notNull(),
+    last_used_at: timestamp({ withTimezone: true, mode: 'string' }),
+    created_by: createdBy,
+    ...timestamps
+  },
+  (t) => [
+    unique('uk_api_key_hash').on(t.key_hash),
+    // RLS: owner-only CRUD
+    crudPolicy({
+      role: authenticatedRole,
+      read: authUid(t.created_by),
+      modify: authUid(t.created_by)
+    })
+  ]
+);
+
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  user: one(users, {
+    fields: [apiKeys.created_by],
+    references: [users.id]
+  })
 }));

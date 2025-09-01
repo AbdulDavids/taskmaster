@@ -4,13 +4,15 @@ import { CreateTaskRequest } from './CreateTaskModal.schemas';
 
 export const createTask = command(CreateTaskRequest, async (request) => {
   const { locals } = getRequestEvent();
+  const { user } = await locals.validateSession();
 
   const [newTask] = await locals.db
     .insert(tasks)
     .values({
       title: request.title,
       description: request.description,
-      project_id: request.project_id
+      project_id: request.project_id,
+      created_by: user.id
     })
     .returning();
 

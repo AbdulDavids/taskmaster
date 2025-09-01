@@ -3,6 +3,7 @@ import { getRequestEvent } from '$app/server';
 import { auth } from '$lib/auth';
 import { error, redirect } from '@sveltejs/kit';
 import { verifyJwt } from '../jwt';
+import { validateApiKey } from '../api-keys';
 
 const clearAuthCookies = () => {
   const { cookies } = getRequestEvent();
@@ -81,7 +82,7 @@ export const createSessionValidator = (): (() => Promise<ValidateSessionResult>)
   };
 };
 
-export const createBearerTokenValidator = (): (() => Promise<{ jwt: string }>) => {
+export const createBearerTokenValidator = (): (() => Promise<{ jwt?: string; userId?: string }>) => {
   const { request } = getRequestEvent();
 
   return async () => {
@@ -90,22 +91,27 @@ export const createBearerTokenValidator = (): (() => Promise<{ jwt: string }>) =
     if (!authHeader) {
       error(401, { message: 'Authorization header missing' });
     }
-    if (!authHeader.startsWith('Bearer ')) {
-      error(401, { message: 'Invalid Authorization header format' });
-    }
-
     const parts = authHeader.split(' ');
+    if (parts.length !== 2) error(401, { message: 'Invalid Authorization header format' });
 
-    if (parts.length !== 2) {
-      error(401, { message: 'Invalid Authorization header format' });
+    const [scheme, credential] = parts;
+    if (scheme === 'Bearer') {
+      const jwtPayload = await verifyJwt(credential);
+      if (!jwtPayload.valid) {
+        error(401, { message: 'Invalid or expired token' });
+      }
+      return { jwt: credential };
     }
-    const providedToken = parts[1];
-    const jwtPayload = await verifyJwt(providedToken);
 
-    if (!jwtPayload.valid) {
-      error(401, { message: 'Invalid or expired token' });
+    if (scheme === 'ApiKey') {
+      const result = await validateApiKey(credential);
+      if (!result.valid) {
+        error(401, { message: 'Invalid API key' });
+      }
+      // For service-connection local dev, jwt is not required. Return userId for downstream logic if needed.
+      return { userId: result.userId };
     }
 
-    return { jwt: providedToken };
+    error(401, { message: 'Invalid Authorization header format' });
   };
 };

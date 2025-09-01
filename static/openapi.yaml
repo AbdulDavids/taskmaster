@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Taskmaster API
-  description: API for managing user tasks with OAuth authentication in Taskmaster
+  description: API for managing user tasks with OAuth or API Key authentication in Taskmaster
   version: 1.0.0
   contact:
     name: API Support
@@ -14,6 +14,7 @@ servers:
 
 security:
   - oauthToken: []
+  - apiKeyAuth: []
 
 components:
   securitySchemes:
@@ -27,6 +28,12 @@ components:
             - openid
             - profile
             - email
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        Use the format: `ApiKey tm_<prefix>_<secret>`
 
   schemas:
     TaskStatus:
