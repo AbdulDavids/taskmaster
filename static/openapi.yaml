@@ -17,7 +17,7 @@ servers:
         default: "http://localhost:5173"
         enum:
           - "http://localhost:5173"
-          - "https://taskmaster-abdul-davids-projects.vercel.app"
+          - "https://taskmaster-ritza.vercel.app"
 
 security:
   - oauthToken: []

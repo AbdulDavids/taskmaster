@@ -4,28 +4,38 @@ A modern SvelteKit application designed to demonstrate Speakeasy products and fe
 
 ## 🚀 Quick Deploy to Vercel
 
-This application is optimized for easy deployment to Vercel with Neon PostgreSQL:
+Deploy to Vercel with Neon in minutes:
 
-1. **Fork this repository** to your GitHub account
+1. Fork this repo and import it into Vercel
+2. In Neon, create a project and note the two URLs:
+   - `DATABASE_URL` (service connection)
+   - `DATABASE_AUTHENTICATED_URL` (JWT-auth connection for RLS)
+3. In Vercel Project → Settings → Environment Variables, add:
 
-2. **Set up Neon Database**:
-   - Create a new project at [neon.tech](https://neon.tech)
-   - Copy your database connection string
+   - `PUBLIC_BETTER_AUTH_URL` = `https://taskmaster-ritza.vercel.app`
+   - `BETTER_AUTH_URL` = `https://taskmaster-ritza.vercel.app`
+   - `BETTER_AUTH_SECRET` = long random hex
+   - `DATABASE_AUTHENTICATED_URL` = `postgresql://authenticated@...`
+   - `DATABASE_URL` = `postgresql://neondb_owner:...`
 
-> [!NOTE]  
-> You can also skip this step by setting up a
+   The production config should look like this:
 
-3. **Deploy to Vercel**:
-   - Connect your GitHub repository to Vercel
-   - Add the following environment variable:
-     ```
-     DATABASE_URL=your_neon_connection_string
-     ```
-   - Deploy! Vercel will automatically handle the build and deployment
+   ![Vercel Env Vars](./static/vercel-env-reference.png)
 
-4. **Run database migrations**:
-   - After deployment, run migrations via Vercel CLI or dashboard
-   - Alternatively, set up GitHub Actions for automatic migrations
+4. Trigger a deploy (push to `main` or use Vercel CLI)
+5. Initialize the database (one-time from local):
+
+   ```bash
+   bun run db:init     # roles, function, grants
+   bun run migrate     # drizzle migrations
+   ```
+
+6. If you rotate `BETTER_AUTH_SECRET`, clear JWKS and redeploy:
+
+   ```bash
+   bun run db:reset-jwks
+   # then redeploy via Vercel
+   ```
 
 ## 🛠 Tech Stack
 
@@ -73,7 +83,7 @@ Simply use [Claude Code](https://claude.ai/code) with this repository for intell
    bun install
    ```
 
-2. **Create local env file**
+2. **Create local env file (matches production)**
 
    ```bash
    cp .env.example .env.local
@@ -84,8 +94,9 @@ Simply use [Claude Code](https://claude.ai/code) with this repository for intell
    ```env
    # Better Auth
    BETTER_AUTH_SECRET=change_me_in_prod
-   BETTER_AUTH_URL=http://localhost:5173
-   PUBLIC_BETTER_AUTH_URL=http://localhost:5173
+   # Use the same host you will access in production to avoid issuer mismatch
+   BETTER_AUTH_URL=https://taskmaster-ritza.vercel.app
+   PUBLIC_BETTER_AUTH_URL=https://taskmaster-ritza.vercel.app
 
    # Database (service connection)
    DATABASE_URL=postgresql://<user>:<password>@<host>/<db>?sslmode=require&channel_binding=require
@@ -96,6 +107,7 @@ Simply use [Claude Code](https://claude.ai/code) with this repository for intell
 
    Notes:
    - The app uses the Neon JWT-auth connection by default. Ensure `DATABASE_AUTHENTICATED_URL` works with your Neon project and roles.
+   - Keep `BETTER_AUTH_URL` and `PUBLIC_BETTER_AUTH_URL` set to the same origin you’re using (e.g. your Vercel alias) so JWKS issuer stays consistent.
 
 3. **Initialize and migrate the database**
 
