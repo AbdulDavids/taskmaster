@@ -9,8 +9,15 @@ info:
     name: MIT
 
 servers:
-  - url: https://taskmaster-speakeasyapi.vercel.app/api
-    description: Deployed server
+  - url: "{server}/api"
+    description: Selectable server
+    variables:
+      server:
+        description: Base URL for the API
+        default: "http://localhost:5173"
+        enum:
+          - "http://localhost:5173"
+          - "https://taskmaster-abdul-davids-projects.vercel.app"
 
 security:
   - oauthToken: []
