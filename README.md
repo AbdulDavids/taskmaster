@@ -1,21 +1,18 @@
-# Speakeasy Demo Application
+# Taskmaster
 
-A modern SvelteKit application designed to demonstrate Speakeasy products and features.
+A modern SvelteKit application that demonstrates a clean, secure stack for projects and tasks with first-class API access.
 
-## 🚀 Quick Deploy to Vercel
+## 🚀 One‑click Deploy (Vercel + Neon)
 
-Deploy to Vercel with Neon in minutes:
+Deploy to Vercel with Neon in minutes. You’ll end with a production URL and API key auth working out of the box.
 
 1. Fork this repo and import it into Vercel
-2. In Neon, create a project and note the two URLs:
-   - `DATABASE_URL` (service connection)
-   - `DATABASE_AUTHENTICATED_URL` (JWT-auth connection for RLS)
+2. In Neon, create a project. Copy the service connection URL as `DATABASE_URL`.
 3. In Vercel Project → Settings → Environment Variables, add:
 
-   - `PUBLIC_BETTER_AUTH_URL` = `https://taskmaster-ritza.vercel.app`
-   - `BETTER_AUTH_URL` = `https://taskmaster-ritza.vercel.app`
+   - `PUBLIC_BETTER_AUTH_URL` = `https://<your-vercel-alias>.vercel.app`
+   - `BETTER_AUTH_URL` = `https://<your-vercel-alias>.vercel.app`
    - `BETTER_AUTH_SECRET` = long random hex
-   - `DATABASE_AUTHENTICATED_URL` = `postgresql://authenticated@...`
    - `DATABASE_URL` = `postgresql://neondb_owner:...`
 
    The production config should look like this:
@@ -23,14 +20,14 @@ Deploy to Vercel with Neon in minutes:
    ![Vercel Env Vars](./static/vercel-env-reference.png)
 
 4. Trigger a deploy (push to `main` or use Vercel CLI)
-5. Initialize the database (one-time from local):
+5. Initialize the database (from your local dev machine, one-time):
 
    ```bash
    bun run db:init     # roles, function, grants
    bun run migrate     # drizzle migrations
    ```
 
-6. If you rotate `BETTER_AUTH_SECRET`, clear JWKS and redeploy:
+6. Rotating `BETTER_AUTH_SECRET`? Clear JWKS and redeploy:
 
    ```bash
    bun run db:reset-jwks
@@ -66,7 +63,7 @@ This project includes a comprehensive `CLAUDE.md` file that enables efficient AI
 
 Simply use [Claude Code](https://claude.ai/code) with this repository for intelligent code assistance, refactoring, and feature development.
 
-## 🚦 Local Development
+## 🚦 Local Development (Bun)
 
 ### Prerequisites
 
@@ -83,7 +80,7 @@ Simply use [Claude Code](https://claude.ai/code) with this repository for intell
    bun install
    ```
 
-2. **Create local env file (matches production)**
+2. **Create local env file (matches production domain)**
 
    ```bash
    cp .env.example .env.local
@@ -94,20 +91,16 @@ Simply use [Claude Code](https://claude.ai/code) with this repository for intell
    ```env
    # Better Auth
    BETTER_AUTH_SECRET=change_me_in_prod
-   # Use the same host you will access in production to avoid issuer mismatch
-   BETTER_AUTH_URL=https://taskmaster-ritza.vercel.app
-   PUBLIC_BETTER_AUTH_URL=https://taskmaster-ritza.vercel.app
+   # Use your Vercel alias host to avoid issuer mismatch in Better Auth
+   BETTER_AUTH_URL=https://<your-vercel-alias>.vercel.app
+   PUBLIC_BETTER_AUTH_URL=https://<your-vercel-alias>.vercel.app
 
-   # Database (service connection)
+   # Database (service connection; Neon)
    DATABASE_URL=postgresql://<user>:<password>@<host>/<db>?sslmode=require&channel_binding=require
-
-   # Database (JWT-auth connection for RLS with Neon)
-   DATABASE_AUTHENTICATED_URL=postgresql://authenticated@<host>/<db>?sslmode=require&channel_binding=require
    ```
 
    Notes:
-   - The app uses the Neon JWT-auth connection by default. Ensure `DATABASE_AUTHENTICATED_URL` works with your Neon project and roles.
-   - Keep `BETTER_AUTH_URL` and `PUBLIC_BETTER_AUTH_URL` set to the same origin you’re using (e.g. your Vercel alias) so JWKS issuer stays consistent.
+   - Keep `BETTER_AUTH_URL` and `PUBLIC_BETTER_AUTH_URL` set to the same origin you’re using (your Vercel alias) so JWKS issuer stays consistent.
 
 3. **Initialize and migrate the database**
 
@@ -144,18 +137,31 @@ This project uses SvelteKit's experimental remote functions feature for type-saf
 - **Database Schemas**: Auth tables in `src/lib/db/schemas/auth.ts`
 - **OIDC Provider**: Custom implementation in `src/lib/oidc-provider/`
 
-### API Keys for MCP / Programmatic Access
+### API Keys for Programmatic/MCP Access
 
-- Table: `api_keys` with owner-only RLS
-- Create via Developer Dashboard → “API Keys” → New Key
-- Keys are returned once and stored hashed (SHA-256) server-side
+- Create via Settings → Developer → API Keys → New Key
+- Keys are returned once and stored hashed (SHA‑256) server‑side
 - Prefix format: `tm_<prefix>_...` for easy identification
 - Revoke from the same page; revoked keys are rejected
 
 Client usage (example header):
 
+You can authenticate in any of the following ways:
+
 ```http
+# Recommended for tools/Gram
+Authorization: Bearer tm_xxx_yyy
+
+# Also supported
+X-API-Key: tm_xxx_yyy
 Authorization: ApiKey tm_xxx_yyy
+```
+
+Example:
+
+```bash
+curl -s https://<your-vercel-alias>.vercel.app/api/projects \
+  -H "Authorization: Bearer tm_xxx_yyy"
 ```
 
 ### Database Structure
@@ -191,13 +197,14 @@ Authorization: ApiKey tm_xxx_yyy
 
 - `bun run db:reset-jwks` - Clear JWKS (use when rotating BETTER_AUTH_SECRET)
 
-### Deployment
+### Deployment (CLI)
 
 - `bun run build` - Build the app (Vite/SvelteKit)
+- `vercel deploy --prod` - Deploy to production
 
 ## 📖 API Documentation
 
-The application includes auto-generated OpenAPI documentation. After starting the development server, visit the API documentation endpoints to explore available endpoints and schemas.
+OpenAPI spec is at `static/openapi.yaml` and follows the working pattern used by this repo historically. It documents Bearer auth and endpoint contracts that match the deployed app. Update this file whenever endpoints or auth change, and keep the server URL pointed at your Vercel alias.
 
 ## 🤝 Contributing
 
