@@ -86,6 +86,16 @@ export const createBearerTokenValidator = (): (() => Promise<{ jwt?: string; use
   const { request } = getRequestEvent();
 
   return async () => {
+    // 1) Support X-API-Key as a first-class header (common standard)
+    const xApiKey = request.headers.get('x-api-key') ?? request.headers.get('X-API-Key');
+    if (xApiKey && xApiKey.trim()) {
+      const result = await validateApiKey(xApiKey.trim());
+      if (!result.valid) {
+        error(401, { message: 'Invalid API key' });
+      }
+      return { userId: result.userId };
+    }
+
     const authHeader = request.headers.get('Authorization');
 
     if (!authHeader) {
@@ -96,11 +106,17 @@ export const createBearerTokenValidator = (): (() => Promise<{ jwt?: string; use
 
     const [scheme, credential] = parts;
     if (scheme === 'Bearer') {
+      // Try JWT verification first (Better Auth)
       const jwtPayload = await verifyJwt(credential);
-      if (!jwtPayload.valid) {
-        error(401, { message: 'Invalid or expired token' });
+      if (jwtPayload.valid) {
+        return { jwt: credential };
       }
-      return { jwt: credential };
+      // Fallback: treat Bearer value as API key
+      const result = await validateApiKey(credential);
+      if (result.valid) {
+        return { userId: result.userId };
+      }
+      error(401, { message: 'Invalid or expired token' });
     }
 
     if (scheme === 'ApiKey') {
