@@ -17,10 +17,11 @@ export const GET: RequestHandler = async ({ locals }) => {
     paramsSchema: ParamsSchema
   });
 
-  // Get relationships with related task information
+  const { user } = await locals.validateSession();
+  // Get relationships owned by current user with related task information
   const relationships = await locals.db.query.taskDependencies.findMany({
     where: (table, { eq, and }) => {
-      const conditions = [eq(table.task_id, params.task_id)];
+      const conditions = [eq(table.task_id, params.task_id), eq(table.created_by, user.id)];
       if (query.relationship_type) {
         conditions.push(eq(table.dependency_type, query.relationship_type));
       }
@@ -70,6 +71,7 @@ export const POST: RequestHandler = async ({ locals }) => {
 
   const { target_task_id, type: relationshipType } = body;
   const { task_id } = params;
+  const { user } = await locals.validateSession();
 
   // Prevent self-referencing relationships
   if (params.task_id === target_task_id) {
@@ -78,7 +80,8 @@ export const POST: RequestHandler = async ({ locals }) => {
 
   // Verify both tasks exist and user owns them
   const existingTasks = await locals.db.query.tasks.findMany({
-    where: (table, { inArray }) => inArray(table.id, [task_id, target_task_id])
+    where: (table, { inArray, eq, and }) =>
+      and(inArray(table.id, [task_id, target_task_id]), eq(table.created_by, user.id))
   });
 
   if (existingTasks.length !== 2) {
@@ -103,7 +106,8 @@ export const POST: RequestHandler = async ({ locals }) => {
     .values({
       task_id,
       depends_on_task_id: target_task_id,
-      dependency_type: relationshipType
+      dependency_type: relationshipType,
+      created_by: user.id
     })
     .returning();
 
