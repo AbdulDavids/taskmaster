@@ -2,6 +2,16 @@
 
 A modern SvelteKit application that demonstrates a clean, secure stack for projects and tasks with first-class API access.
 
+## What is Taskmaster?
+
+Taskmaster is a full-stack Todo/Project app that you deploy and host yourself (e.g., on Vercel). It includes:
+
+- A web UI for managing projects and tasks
+- A built-in HTTP API (under `/api`) intended for automation, MCP tools, and integrations
+- API keys you generate inside the app (Settings → Developer) to call your own instance
+
+This is not a standalone, multi-tenant public API. You deploy your own Taskmaster instance, then use its API with keys you create in that instance.
+
 ## 🚀 One‑click Deploy (Vercel + Neon)
 
 Deploy to Vercel with Neon in minutes. You’ll end with a production URL and API key auth working out of the box.

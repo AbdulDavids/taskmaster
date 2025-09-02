@@ -4,9 +4,15 @@ import { eq } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
+  const { user } = await locals.validateSession();
   const [apps, apiKeys] = await Promise.all([
-    locals.db.query.oauthApplications.findMany(),
-    locals.db.query.apiKeys.findMany({ orderBy: (t, { desc }) => [desc(t.created_at)] })
+    locals.db.query.oauthApplications.findMany({
+      where: (t, { eq }) => eq(t.userId, user.id)
+    }),
+    locals.db.query.apiKeys.findMany({
+      where: (t, { eq }) => eq(t.created_by, user.id),
+      orderBy: (t, { desc }) => [desc(t.created_at)]
+    })
   ]);
   return { apps, apiKeys };
 };
