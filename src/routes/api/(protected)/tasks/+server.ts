@@ -3,7 +3,6 @@ import { json } from '@sveltejs/kit';
 import z from 'zod';
 import type { RequestHandler } from './$types.js';
 import { validateRequest } from './_helpers.js';
-import { getRequestEvent } from '$app/server';
 
 export const GET: RequestHandler = async ({ locals }) => {
   const reqValidation = await validateRequest({
@@ -12,10 +11,9 @@ export const GET: RequestHandler = async ({ locals }) => {
 
   const { project_id } = reqValidation.query;
 
-  const { user } = await locals.validateSession();
   const result = await locals.db.query.tasks.findMany({
     where: (table, { eq, and }) => {
-      const conditions = [eq(table.created_by, user.id)];
+      const conditions = [];
       if (project_id) {
         conditions.push(eq(table.project_id, project_id));
       }
@@ -43,15 +41,13 @@ export const POST: RequestHandler = async ({ locals }) => {
 
   const { title, description, project_id, status } = reqValidation.body;
 
-  const { user } = await locals.validateSession();
   const result = await locals.db
     .insert(tasks)
     .values({
       title,
       description,
       project_id: project_id,
-      status,
-      created_by: user.id
+      status
     })
     .returning();
 
