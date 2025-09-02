@@ -1,5 +1,4 @@
 import { relations, sql } from 'drizzle-orm';
-import { authenticatedRole, authUid, crudPolicy } from 'drizzle-orm/neon';
 import {
   check,
   customType,
@@ -31,10 +30,7 @@ const timestamps = {
     .$onUpdate(() => sql`(now() AT TIME ZONE 'utc'::text)`)
 };
 
-const createdBy = text()
-  .notNull()
-  .default(sql`(auth.user_id())`)
-  .references(() => users.id, { onDelete: 'cascade' });
+const createdBy = text().notNull().references(() => users.id, { onDelete: 'cascade' });
 
 export const taskStatusEnum = pgEnum('task_status', [
   'backlog',
@@ -64,14 +60,7 @@ export const tasks = pgTable(
     status: taskStatusEnum(),
     ...timestamps
   },
-  (t) => [
-    index('title_search_index').using('gin', t.search_vector),
-    crudPolicy({
-      role: authenticatedRole,
-      read: authUid(t.created_by),
-      modify: authUid(t.created_by)
-    })
-  ]
+  (t) => [index('title_search_index').using('gin', t.search_vector)]
 );
 
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
@@ -107,15 +96,7 @@ export const taskDependencies = pgTable(
     created_by: createdBy,
     ...timestamps
   },
-  (t) => [
-    unique().on(t.task_id, t.depends_on_task_id),
-    check('no_self_ref', sql`${t.task_id} <> ${t.depends_on_task_id}`),
-    crudPolicy({
-      role: authenticatedRole,
-      read: authUid(t.created_by),
-      modify: authUid(t.created_by)
-    })
-  ]
+  (t) => [unique().on(t.task_id, t.depends_on_task_id), check('no_self_ref', sql`${t.task_id} <> ${t.depends_on_task_id}`)]
 );
 
 export const taskDependenciesRelations = relations(taskDependencies, ({ one }) => ({
@@ -140,13 +121,7 @@ export const projects = pgTable(
     created_by: createdBy,
     ...timestamps
   },
-  (t) => [
-    crudPolicy({
-      role: authenticatedRole,
-      read: authUid(t.created_by),
-      modify: authUid(t.created_by)
-    })
-  ]
+  () => []
 );
 
 export const projectsRelations = relations(projects, ({ many }) => ({
@@ -166,15 +141,7 @@ export const apiKeys = pgTable(
     created_by: createdBy,
     ...timestamps
   },
-  (t) => [
-    unique('uk_api_key_hash').on(t.key_hash),
-    // RLS: owner-only CRUD
-    crudPolicy({
-      role: authenticatedRole,
-      read: authUid(t.created_by),
-      modify: authUid(t.created_by)
-    })
-  ]
+  (t) => [unique('uk_api_key_hash').on(t.key_hash)]
 );
 
 export const apiKeysRelations = relations(apiKeys, ({ one }) => ({

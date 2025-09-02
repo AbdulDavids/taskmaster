@@ -11,7 +11,8 @@ async function main() {
   await client.connect();
   try {
     await client.query('DELETE FROM jwkss;');
-    console.log('Cleared jwkss table. New keys will be generated on next auth use.');
+    await client.query('DELETE FROM sessions;');
+    console.log('Cleared jwkss and sessions tables. New keys will be generated on next auth use.');
   } finally {
     await client.end();
   }

@@ -50,6 +50,13 @@
       "when": 1756758611962,
       "tag": "0006_ancient_outlaw_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1756768164072,
+      "tag": "0007_round_blindfold",
+      "breakpoints": true
     }
   ]
 }
