@@ -9,27 +9,18 @@ info:
     name: MIT
 
 security:
-  - oauthToken: []
-  - apiKeyAuth: []
+  - apiKey: []
 
 components:
   securitySchemes:
-    oauthToken:
-      type: oauth2
-      flows:
-        authorizationCode:
-          authorizationUrl: /api/oauth2/authorize
-          tokenUrl: /api/oauth2/token
-          scopes:
-            - openid
-            - profile
-            - email
-    apiKeyAuth:
+    apiKey:
       type: apiKey
       in: header
-      name: Authorization
+      name: X-API-Key
       description: |
-        Use the format: `ApiKey tm_<prefix>_<secret>`
+        Provide your API key via the `X-API-Key` header.
+        This API also accepts `Authorization: Bearer <token>` for OAuth tokens
+        and will treat `Authorization: Bearer <apiKey>` as an API key for convenience.
 
   schemas:
     TaskStatus:
@@ -136,10 +127,9 @@ paths:
     post:
       operationId: createTask
       summary: Create a new task
-      description: Creates a new task for the authenticated user in Taskmaster
+      description: Creates a new task for the authenticated user.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       requestBody:
         required: true
         content:
@@ -179,8 +169,7 @@ paths:
       summary: Get all tasks for authenticated user
       description: Retrieves all tasks belonging to the authenticated user. Optionally filter by project.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: project_id
           in: query
@@ -206,9 +195,9 @@ paths:
     put:
       operationId: updateTask
       summary: Update a specific task
+      description: Updates a task by ID. Provide only fields you want to change.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: id
           in: path
@@ -248,9 +237,9 @@ paths:
     delete:
       operationId: deleteTask
       summary: Delete a specific task
+      description: Deletes a task by ID belonging to the authenticated user.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: id
           in: path
@@ -272,9 +261,9 @@ paths:
     get:
       operationId: getTaskRelationships
       summary: Get all relationships for a specific task
+      description: Retrieves all relationships for a task. Optionally filter by type.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: task_id
           in: path
@@ -305,9 +294,9 @@ paths:
     post:
       operationId: createTaskRelationship
       summary: Create a new task relationship
+      description: Creates a relationship between two tasks.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: task_id
           in: path
@@ -346,9 +335,9 @@ paths:
     put:
       operationId: updateTaskRelationship
       summary: Update a specific task relationship
+      description: Updates the relationship type for a specific task relationship.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: task_id
           in: path
@@ -381,9 +370,9 @@ paths:
     delete:
       operationId: deleteTaskRelationship
       summary: Delete a specific task relationship
+      description: Deletes a task relationship belonging to the authenticated user.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: task_id
           in: path
@@ -408,9 +397,9 @@ paths:
     post:
       operationId: createProject
       summary: Create a new project
+      description: Creates a new project for the authenticated user.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       requestBody:
         required: true
         content:
@@ -435,9 +424,9 @@ paths:
     get:
       operationId: getProjects
       summary: Get all projects for authenticated user
+      description: Retrieves all projects belonging to the authenticated user.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       responses:
         '200':
           description: Successfully retrieved projects
@@ -454,9 +443,9 @@ paths:
     delete:
       operationId: deleteProject
       summary: Delete a specific project
+      description: Deletes a project by ID belonging to the authenticated user.
       security:
-        - oauthToken: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: id
           in: path

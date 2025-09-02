@@ -9,31 +9,46 @@ import type { ZodError, ZodTypeAny } from 'zod';
 export async function validateAuthHeader(
   authHeader: string | null
 ): Promise<InferSelectModel<typeof oauthAccessTokens> | { userId: string } | false> {
+  const { request } = getRequestEvent();
+
+  // 1) X-API-Key (common standard for API key auth)
+  const xApiKey = request.headers.get('x-api-key') ?? request.headers.get('X-API-Key');
+  if (xApiKey && xApiKey.trim()) {
+    const { validateApiKey } = await import('./apikey');
+    const result = await validateApiKey(xApiKey.trim());
+    if (result.valid) return { userId: result.userId };
+  }
+
   if (!authHeader) return false;
 
-  // OAuth Bearer token
+  // 2) Bearer token (OAuth access token) OR API key in Bearer slot
   if (authHeader.startsWith('Bearer ')) {
     const parts = authHeader.split(' ');
     if (parts.length !== 2) return false;
-    const providedToken = parts[1];
+    const token = parts[1];
 
+    // Try OAuth access token
     const storedToken = await db.query.oauthAccessTokens.findFirst({
-      where: (table, { eq }) => eq(table.accessToken, providedToken)
+      where: (table, { eq }) => eq(table.accessToken, token)
     });
-    if (!storedToken) return false;
+    if (storedToken) return storedToken;
 
-    return storedToken;
+    // Fallback: treat as API key (some clients send API keys as Bearer)
+    const { validateApiKey } = await import('./apikey');
+    const result = await validateApiKey(token);
+    if (result.valid) return { userId: result.userId };
+    return false;
   }
 
-  // API Key header
+  // 3) Authorization: ApiKey <key> (backward compatible)
   if (authHeader.startsWith('ApiKey ')) {
     const parts = authHeader.split(' ');
     if (parts.length !== 2) return false;
     const providedKey = parts[1];
     const { validateApiKey } = await import('./apikey');
     const result = await validateApiKey(providedKey);
-    if (!result.valid) return false;
-    return { userId: result.userId };
+    if (result.valid) return { userId: result.userId };
+    return false;
   }
 
   return false;
