@@ -2,7 +2,7 @@ import type { combinedSchemas } from '$lib/db';
 import type { NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { ResultAsync } from 'neverthrow';
 import { DatabaseError, type TaggedError } from './errors';
-type User = typeof import('$lib/db/schemas/auth').users.$inferSelect;
+import type { User } from 'better-auth';
 
 export class ProjectNotFoundError extends Error implements TaggedError {
   _tag = 'UserNotFoundError' as const;

@@ -1,5 +1,6 @@
 import { resolve } from '$app/paths';
 import { getRequestEvent } from '$app/server';
+import { auth } from '$lib/auth';
 import { error, redirect } from '@sveltejs/kit';
 import z from 'zod';
 import { generateJwt, verifyJwt } from '../jwt';
@@ -8,8 +9,7 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { DATABASE_AUTHENTICATED_URL } from '$env/static/private';
 import { combinedSchemas } from '$lib/db';
-import type { users } from '$lib/db/schemas/auth';
-type User = typeof import('$lib/db/schemas/auth').users.$inferSelect;
+import type { User } from 'better-auth/types';
 import type { TaggedError } from '../services/errors';
 import { errAsync, okAsync, Result } from 'neverthrow';
 
@@ -55,28 +55,35 @@ export const createSessionValidator = (): (() => Promise<ValidateSessionResult>)
       return validatedSession;
     }
 
-    // No auth mode: synthesize a bypass session
+    const sessionResponse = await auth.api.getSession({
+      headers: event.request.headers,
+      asResponse: true
+    });
+
+    if (sessionResponse.status !== 200) {
+      event.locals.sendFlashMessage({
+        title: 'Unauthorized',
+        description: `An error occurred while validating your session (${sessionResponse.status}). Please log in again.`
+      });
+      clearAuthCookies();
+      redirect(303, resolve('/(auth)/sign-in'));
+    }
+
+    const sessionJson: ValidateSessionResult | null = await sessionResponse.json();
+    const setJwtHeader: string | null = sessionResponse.headers.get('set-auth-jwt');
+
+    if (!sessionJson || !setJwtHeader) {
+      event.locals.sendFlashMessage({
+        title: 'Unauthorized',
+        description: 'Your session is invalid. Please log in again.'
+      });
+      clearAuthCookies();
+      redirect(303, resolve('/(auth)/sign-in'));
+    }
+
     validatedSession = {
-      user: {
-        id: 'bypass-user',
-        name: 'Bypass User',
-        email: 'bypass@example.com',
-        image: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        emailVerified: false
-      } as unknown as User,
-      session: {
-        id: 'bypass-session',
-        token: 'bypass',
-        expiresAt: new Date(Date.now() + 3600_000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ipAddress: null,
-        userAgent: null,
-        userId: 'bypass-user'
-      } as any,
-      jwt: 'bypass-jwt'
+      ...sessionJson,
+      jwt: sessionResponse.headers.get('set-auth-jwt')!
     };
 
     return validatedSession;
@@ -144,29 +151,20 @@ export const createApiKeyValidator = (): (() => Promise<ValidateSessionResult>) 
     if (!apiKey) {
       error(401, { message: 'API key missing' });
     }
-    const jwt = await generateJwt({ userId: 'bypass-user' });
-    validatedSession = {
-      user: {
-        id: 'bypass-user',
-        name: 'Bypass User',
-        email: 'bypass@example.com',
-        image: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        emailVerified: false
-      } as unknown as User,
-      session: {
-        id: 'bypass-session',
-        token: 'bypass',
-        expiresAt: new Date(Date.now() + 3600_000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ipAddress: null,
-        userAgent: null,
-        userId: 'bypass-user'
-      } as any,
-      jwt
-    };
+
+    const sessionResponse = await auth.api.getSession({
+      headers: request.headers
+    });
+
+    if (!sessionResponse) {
+      error(401, { message: 'Invalid API key' });
+    }
+
+    const jwt = await generateJwt({
+      userId: sessionResponse.user.id
+    });
+
+    validatedSession = { ...sessionResponse, jwt };
     return validatedSession;
   };
 };
@@ -233,27 +231,35 @@ export class AppSessionHandler extends BaseSessionHandler {
       return okAsync(this.validatedSession);
     }
 
+    const sessionResponse = await auth.api.getSession({
+      headers: this._event.request.headers,
+      asResponse: true
+    });
+
+    if (sessionResponse.status !== 200) {
+      this._event.locals.sendFlashMessage({
+        title: 'Unauthorized',
+        description: `An error occurred while validating your session (${sessionResponse.status}). Please log in again.`
+      });
+      clearAuthCookies();
+      redirect(303, resolve('/(auth)/sign-in'));
+    }
+
+    const sessionJson: ValidateSessionResult | null = await sessionResponse.json();
+    const setJwtHeader: string | null = sessionResponse.headers.get('set-auth-jwt');
+
+    if (!sessionJson || !setJwtHeader) {
+      this._event.locals.sendFlashMessage({
+        title: 'Unauthorized',
+        description: 'Your session is invalid. Please log in again.'
+      });
+      clearAuthCookies();
+      redirect(303, resolve('/(auth)/sign-in'));
+    }
+
     this.validatedSession = {
-      user: {
-        id: 'bypass-user',
-        name: 'Bypass User',
-        email: 'bypass@example.com',
-        image: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        emailVerified: false
-      } as unknown as User,
-      session: {
-        id: 'bypass-session',
-        token: 'bypass',
-        expiresAt: new Date(Date.now() + 3600_000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ipAddress: null,
-        userAgent: null,
-        userId: 'bypass-user'
-      } as any,
-      jwt: 'bypass-jwt'
+      ...sessionJson,
+      jwt: sessionResponse.headers.get('set-auth-jwt')!
     };
 
     return okAsync(this.validatedSession);
@@ -353,29 +359,19 @@ export class ApiKeySessionHandler extends BaseSessionHandler {
       return errAsync(new InvalidCredentialError('API key missing'));
     }
 
-    const jwt = await generateJwt({ userId: 'bypass-user' });
-    this.validatedSession = {
-      user: {
-        id: 'bypass-user',
-        name: 'Bypass User',
-        email: 'bypass@example.com',
-        image: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        emailVerified: false
-      } as unknown as User,
-      session: {
-        id: 'bypass-session',
-        token: 'bypass',
-        expiresAt: new Date(Date.now() + 3600_000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ipAddress: null,
-        userAgent: null,
-        userId: 'bypass-user'
-      } as any,
-      jwt
-    };
+    const sessionResponse = await auth.api.getSession({
+      headers: this._event.request.headers
+    });
+
+    if (!sessionResponse) {
+      return errAsync(new InvalidCredentialError('Invalid API key'));
+    }
+
+    const jwt = await generateJwt({
+      userId: sessionResponse.user.id
+    });
+
+    this.validatedSession = { ...sessionResponse, jwt };
     return okAsync(this.validatedSession);
   }
 
@@ -396,41 +392,4 @@ export class InvalidCredentialError extends Error implements TaggedError {
   constructor(message?: string) {
     super(message || 'Invalid Credential');
   }
-}
-
-/**
- * Bypass session handler used for temporary, unauthenticated operation.
- * - Returns a static user and JWT
- * - Routes DB access through the admin database connection on locals.db
- */
-export class BypassSessionHandler extends BaseSessionHandler {
-  private user: User;
-
-  constructor(options: { user?: Partial<User> } = {}) {
-    super({ eagerValidate: false });
-    this.user = {
-      id: options.user?.id ?? 'bypass-user',
-      name: options.user?.name ?? 'Bypass User',
-      email: options.user?.email ?? 'bypass@example.com',
-      image: options.user?.image ?? null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      emailVerified: false
-    } as unknown as User;
-  }
-
-  async validate() {
-    return okAsync({ user: this.user, jwt: 'bypass-jwt' });
-  }
-
-  async getUser(): Promise<User> {
-    return this.user;
-  }
-
-  // Override to use the admin DB attached by hooks on locals.db
-  useDb = <TResult>(cb: (db: AuthenticatedDbClient) => MaybePromise<TResult>) => {
-    const { locals } = getRequestEvent();
-    // Cast to AuthenticatedDbClient for compatibility with existing call sites
-    return cb(locals.db as unknown as AuthenticatedDbClient);
-  };
 }

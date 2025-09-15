@@ -1,4 +1,5 @@
 import { form, getRequestEvent } from '$app/server';
+import { auth } from '$lib/auth';
 import { validateForm } from '$lib/server/remote-fns';
 import { CreateApiKeyFormSchema } from './CreateApiKeyModal.schema';
 
@@ -14,6 +15,13 @@ export const createApiKey = form(async (form) => {
     };
   }
 
-  // Auth is disabled; creating API keys is not supported
-  return { success: false, message: 'API keys are disabled in no-auth mode.' } as any;
+  const result = await auth.api.createApiKey({
+    body: { ...formValidation.data },
+    headers: request.headers
+  });
+
+  return {
+    success: true,
+    data: result
+  };
 });
