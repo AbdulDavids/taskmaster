@@ -1,5 +1,5 @@
 import { getRequestEvent } from '$app/server';
-import { DATABASE_AUTHENTICATED_URL } from '$env/static/private';
+import { DATABASE_URL } from '$env/static/private';
 import { combinedSchemas } from '$lib/db';
 import { neon } from '@neondatabase/serverless';
 import { drizzle, NeonHttpDatabase } from 'drizzle-orm/neon-http';
@@ -36,11 +36,10 @@ export const createAuthenticatedDb = (
     throw new Error('Invalid authentication strategy');
   }
 
-  return drizzle(neon(DATABASE_AUTHENTICATED_URL), {
+  // RLS/auth disabled at DB level: return plain admin client
+  return drizzle(neon(DATABASE_URL), {
     schema: combinedSchemas
-  }).$withAuth(authenticator);
+  });
 };
 
-export type AuthenticatedDbClient = ReturnType<
-  NeonHttpDatabase<typeof combinedSchemas>['$withAuth']
->;
+export type AuthenticatedDbClient = NeonHttpDatabase<typeof combinedSchemas>;

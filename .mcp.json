@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "GramTaskmaster": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://app.getgram.ai/mcp/ritza-rzx-taskmaster",
+        "--header",
+        "Gram-Environment:Default",
+        "--header",
+        "Authorization: Bearer gram_live_1b0d75271386257c006abd3e99151f48b77ff6d5a86b329e0e5c7cc9fde08eef"
+      ]
+    }
+  }
+}

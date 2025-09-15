@@ -7,7 +7,7 @@ import { generateJwt, verifyJwt } from '../jwt';
 import type { AuthenticatedDbClient } from './db';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
-import { DATABASE_AUTHENTICATED_URL } from '$env/static/private';
+import { DATABASE_URL } from '$env/static/private';
 import { combinedSchemas } from '$lib/db';
 import type { User } from 'better-auth/types';
 import type { TaggedError } from '../services/errors';
@@ -183,15 +183,12 @@ export abstract class BaseSessionHandler {
 
   abstract getUser(): Promise<User>;
 
-  /** Provides a database client authenticated with the current user's JWT. */
+  /** Provides a database client (RLS/auth disabled). */
   useDb = <TResult>(
     cb: (db: AuthenticatedDbClient) => MaybePromise<TResult>
   ): MaybePromise<TResult> => {
-    const authenticatedDb = drizzle(neon(DATABASE_AUTHENTICATED_URL), {
+    const authenticatedDb = drizzle(neon(DATABASE_URL), {
       schema: combinedSchemas
-    }).$withAuth(async () => {
-      const jwt = await this.getJwt();
-      return jwt;
     });
 
     return cb(authenticatedDb);
