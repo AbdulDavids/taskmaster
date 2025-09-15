@@ -393,3 +393,40 @@ export class InvalidCredentialError extends Error implements TaggedError {
     super(message || 'Invalid Credential');
   }
 }
+
+/**
+ * Bypass session handler used for temporary, unauthenticated operation.
+ * - Returns a static user and JWT
+ * - Routes DB access through the admin database connection on locals.db
+ */
+export class BypassSessionHandler extends BaseSessionHandler {
+  private user: User;
+
+  constructor(options: { user?: Partial<User> } = {}) {
+    super({ eagerValidate: false });
+    this.user = {
+      id: options.user?.id ?? 'bypass-user',
+      name: options.user?.name ?? 'Bypass User',
+      email: options.user?.email ?? 'bypass@example.com',
+      image: options.user?.image ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      emailVerified: false
+    } as User;
+  }
+
+  async validate() {
+    return okAsync({ user: this.user, jwt: 'bypass-jwt' });
+  }
+
+  async getUser(): Promise<User> {
+    return this.user;
+  }
+
+  // Override to use the admin DB attached by hooks on locals.db
+  useDb = <TResult>(cb: (db: AuthenticatedDbClient) => MaybePromise<TResult>) => {
+    const { locals } = getRequestEvent();
+    // Cast to AuthenticatedDbClient for compatibility with existing call sites
+    return cb(locals.db as unknown as AuthenticatedDbClient);
+  };
+}
