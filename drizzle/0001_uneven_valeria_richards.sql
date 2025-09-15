@@ -1,3 +1,25 @@
+-- Ensure prerequisites for RLS policies exist
+CREATE SCHEMA IF NOT EXISTS auth;--> statement-breakpoint
+CREATE OR REPLACE FUNCTION auth.user_id()
+RETURNS text
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT COALESCE(
+    NULLIF(current_setting('request.jwt.claim.sub', true), ''),
+    (NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'),
+    NULLIF(current_setting('request.jwt.claims.sub', true), ''),
+    NULLIF(current_setting('jwt.claims.sub', true), ''),
+    current_user::text
+  );
+$$;--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    CREATE ROLE authenticated NOINHERIT;
+  END IF;
+END$$;--> statement-breakpoint
+
 ALTER TABLE "projects" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "task_dependencies" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "tasks" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
