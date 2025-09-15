@@ -1,5 +1,4 @@
 import { form, getRequestEvent } from '$app/server';
-import { auth } from '$lib/auth';
 import { validateForm } from '$lib/server/remote-fns';
 import z from 'zod';
 
@@ -20,18 +19,9 @@ export const deleteApiKey = form(async (form): Promise<{ success: boolean }> => 
     return { success: false };
   }
 
-  const result = await auth.api.deleteApiKey({
-    body: { keyId: formValidation.data.id },
-    headers: request.headers
+  locals.sendFlashMessage({
+    title: 'Unavailable',
+    description: 'API keys are disabled in no-auth mode.'
   });
-
-  if (!result.success) {
-    locals.sendFlashMessage({
-      title: 'Error',
-      description: 'Failed to delete API key'
-    });
-    return { success: false };
-  }
-
-  return { success: true };
+  return { success: false };
 });

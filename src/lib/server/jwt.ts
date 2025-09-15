@@ -1,9 +1,6 @@
-import { BETTER_AUTH_SECRET, BETTER_AUTH_URL } from '$env/static/private';
-import { db } from '$lib/db';
-import { generateRandomString, symmetricDecrypt } from 'better-auth/crypto';
-import { SignJWT, createRemoteJWKSet, importJWK, jwtVerify, type JWTPayload } from 'jose';
-
-const JWKS = createRemoteJWKSet(new URL(`${BETTER_AUTH_URL}/api/auth/jwks`));
+import { BETTER_AUTH_SECRET } from '$env/static/private';
+import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
+import { TextEncoder } from 'util';
 
 type VerifyJwtResult =
   | {
@@ -17,10 +14,9 @@ type VerifyJwtResult =
 
 export const verifyJwt = async (token: string): Promise<VerifyJwtResult> => {
   try {
-    const { payload } = await jwtVerify(token, JWKS, {
-      algorithms: ['ES256'],
-      issuer: BETTER_AUTH_URL,
-      audience: BETTER_AUTH_URL,
+    const secret = new TextEncoder().encode(BETTER_AUTH_SECRET);
+    const { payload } = await jwtVerify(token, secret, {
+      algorithms: ['HS256'],
       requiredClaims: ['sub', 'iat', 'exp']
     });
     return { valid: true, payload };
@@ -36,30 +32,12 @@ export const verifyJwt = async (token: string): Promise<VerifyJwtResult> => {
  * Pass a time span like '1h', '30m', '15s' to the expiresIn parameter. Default is '1h'.
  */
 export async function generateJwt(params: { userId: string; expiresIn?: string }): Promise<string> {
-  const storedPk = await db.query.jwkss.findFirst();
-
-  if (!storedPk) {
-    throw new Error('JWKs not found in the database');
-  }
-
-  const decryptedKey = await symmetricDecrypt({
-    key: BETTER_AUTH_SECRET,
-    data: JSON.parse(storedPk.privateKey)
-  });
-
-  const privateKey = await importJWK(JSON.parse(decryptedKey), 'ES256');
-
+  const secret = new TextEncoder().encode(BETTER_AUTH_SECRET);
   const jwt = new SignJWT()
-    .setProtectedHeader({
-      alg: 'ES256',
-      kid: storedPk.id
-    })
+    .setProtectedHeader({ alg: 'HS256' })
     .setSubject(params.userId)
-    .setIssuer(BETTER_AUTH_URL)
-    .setAudience(BETTER_AUTH_URL)
     .setIssuedAt()
-    .setExpirationTime(params.expiresIn ?? '1h')
-    .setJti(generateRandomString(32, 'a-z', 'A-Z'));
+    .setExpirationTime(params.expiresIn ?? '1h');
 
-  return await jwt.sign(privateKey);
+  return await jwt.sign(secret);
 }

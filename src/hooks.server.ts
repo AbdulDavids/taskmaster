@@ -1,5 +1,4 @@
 import { building } from '$app/environment';
-import { auth } from '$lib/auth';
 import { db as adminDb } from '$lib/db';
 import {
   ApiBearerTokenHandler,
@@ -17,7 +16,6 @@ import {
 } from '$lib/server/event-utilities';
 import { ServiceContainer } from '$lib/server/services';
 import { type Handle } from '@sveltejs/kit';
-import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { BYPASS_AUTH } from '$env/static/private';
 import { BypassSessionHandler } from '$lib/server/event-utilities/session';
 
@@ -29,7 +27,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.validateBearerToken = createBearerTokenValidator();
   event.locals.validateApiKey = createApiKeyValidator();
 
-  const bypass = String(BYPASS_AUTH || '').toLowerCase() === 'true';
+  // Default to bypassing auth unless explicitly disabled
+  const bypass = String(BYPASS_AUTH ?? 'true').toLowerCase() === 'true';
 
   if (bypass) {
     // Bypass authentication entirely and use admin DB for all requests
@@ -50,7 +49,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         ipAddress: null,
         userAgent: null,
         userId: 'bypass-user'
-      } as unknown as import('better-auth').Session,
+      } as any,
       jwt: 'bypass-jwt'
     });
   } else {
@@ -69,5 +68,6 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
-  return svelteKitHandler({ event, resolve, auth, building });
+  // No Better Auth: always resolve the request directly
+  return resolve(event);
 };

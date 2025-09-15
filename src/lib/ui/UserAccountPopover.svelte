@@ -1,19 +1,14 @@
 <script lang="ts">
   import LogOut from '@lucide/svelte/icons/log-out';
   import { Popover } from '@skeletonlabs/skeleton-svelte';
-  import { authClient } from '$lib/auth-client';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
 
   let { user } = $props<{ user: { name: string; email: string } }>();
 
   async function handleSignOut() {
-    try {
-      await authClient.signOut();
-      goto(resolve('/sign-in'));
-    } catch (error) {
-      console.error('Sign out failed:', error);
-    }
+    // No auth: simply navigate to home or sign-in page placeholder
+    goto(resolve('/'));
   }
 
   function getInitials(name: string): string {

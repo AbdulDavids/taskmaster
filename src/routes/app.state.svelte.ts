@@ -1,32 +1,12 @@
-import { authClient } from '$lib/auth-client';
-import type { Session, User } from 'better-auth';
-import type { BetterFetchError } from 'better-auth/svelte';
-import { getContext, onMount, setContext } from 'svelte';
+import { getContext, setContext } from 'svelte';
 import { createToaster } from '@skeletonlabs/skeleton-svelte';
 
 class AuthState {
-  user: User | null = $state(null);
-  session: Session | null = $state(null);
-  error: BetterFetchError | null = $state(null);
-  isPending: boolean = $state(true);
+  user: { id: string; name: string; email: string } | null = $state(null);
+  session: { id: string } | null = $state(null);
+  error: { message: string } | null = $state(null);
+  isPending: boolean = $state(false);
   isRefetching: boolean = $state(false);
-
-  constructor() {
-    onMount(() => {
-      const unsubscribe = authClient.useSession().subscribe((result) => {
-        this.session = result.data?.session ?? null;
-        this.user = result.data?.user ?? null;
-        this.error = result.error;
-        this.isPending = result.isPending;
-        this.isRefetching = result.isRefetching;
-      });
-
-      window.addEventListener('beforeunload', unsubscribe);
-      return () => {
-        window.removeEventListener('beforeunload', unsubscribe);
-      };
-    });
-  }
 }
 
 export class AppState {

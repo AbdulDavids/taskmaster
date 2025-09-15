@@ -50,9 +50,19 @@ declare global {
     }
   }
 
+  type DbUser = typeof import('$lib/db/schemas/auth').users.$inferSelect;
   type ValidateSessionResult = Readonly<{
-    session: import('better-auth').Session;
-    user: import('better-auth').User;
+    session: {
+      id: string;
+      token: string;
+      expiresAt: Date;
+      createdAt: Date;
+      updatedAt: Date;
+      ipAddress: string | null;
+      userAgent: string | null;
+      userId: string;
+    };
+    user: DbUser;
     jwt: string;
   }>;
 
